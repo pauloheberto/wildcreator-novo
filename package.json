@@ -1,0 +1,10 @@
+{
+  "name": "wildercreator-api",
+  "version": "1.0.0",
+  "description": "API de geração de títulos, descrições e tags para criadores de conteúdo.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node api/generate.js"
+  },
+  "license": "MIT"
+}
