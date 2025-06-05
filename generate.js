@@ -9,11 +9,55 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Texto do vídeo é muito curto ou inválido." });
   }
 
-  const output = {
-    title: "Capivaras em Foco: Explorando com Drone",
-    description: `Neste vídeo, acompanhamos uma família de capivaras em seu habitat natural usando drones. Exploramos seu comportamento, deslocamento e como vivem em harmonia com o ambiente.\n\nLinks úteis e vídeos recomendados:\n#fauna #drones #documentário #capivaras\n`,
-    tags: "capivaras, drone, natureza, vida selvagem, fauna brasileira, vídeos de animais"
-  };
+  const apiKey = process.env.OPENAI_API_KEY;
 
-  res.status(200).json(output);
+  if (!apiKey) {
+    return res.status(500).json({ error: "Chave da OpenAI não configurada no ambiente." });
+  }
+
+  try {
+    const completion = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um especialista em marketing para vídeos online. Com base no script enviado, gere um título cativante, uma descrição com SEO e tags relevantes para plataformas como YouTube."
+          },
+          {
+            role: "user",
+            content: `Script do vídeo: ${script}`
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 800
+      })
+    });
+
+    const data = await completion.json();
+
+    const resultText = data.choices?.[0]?.message?.content || "";
+
+    // Separar título, descrição e tags com base em marcações esperadas
+    const titleMatch = resultText.match(/(?<=Título:)(.*)/i);
+    const descriptionMatch = resultText.match(/(?<=Descrição:)([\s\S]*?)(?=Tags:)/i);
+    const tagsMatch = resultText.match(/(?<=Tags:)(.*)/i);
+
+    const output = {
+      title: titleMatch ? titleMatch[0].trim() : "Título não gerado",
+      description: descriptionMatch ? descriptionMatch[0].trim() : "Descrição não gerada",
+      tags: tagsMatch ? tagsMatch[0].trim() : "tags não geradas"
+    };
+
+    res.status(200).json(output);
+
+  } catch (err) {
+    console.error("Erro ao gerar conteúdo:", err);
+    res.status(500).json({ error: "Erro ao gerar conteúdo com a OpenAI." });
+  }
 }
